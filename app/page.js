@@ -1,16 +1,20 @@
 'use client'
-import { Box, Button, Modal, Stack, IconButton, TextField, Typography } from "@mui/material";
+import { Box, Button, Modal, Stack, IconButton, TextField, Typography, InputBase } from "@mui/material";
 import { firestore } from "@/firebase";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import DeleteEntry from "./components/deleteEntry";
 
-import { AddCircle } from "@mui/icons-material";
+import { AddCircle, ContentPasteSearchOutlined, Search } from "@mui/icons-material";
 
 
 export default function Home() {
   const [removeButtonActive, setRemoveButtonActive] = useState(false)
   const [addModalActive, setAddModal] = useState(false)
+  const [inventory, setInventory] = useState([])
+  const [inputText, setText] = useState('')
+  const [searchText, setSearchText] = useState('');
+
   const modalStyle = {
     position: 'absolute',
     top: '50%',
@@ -23,8 +27,6 @@ export default function Home() {
     p: 4,
   }
 
-  const [inventory, setInventory] = useState(['potato', 'ground beef', 'beef jerky', 'chicken breast', 'oxtail', 'quail'])
-
   const updateInventory = async ()=>{
     const q = query(collection(firestore, 'inventory'))
     const docs = await getDocs(q)
@@ -34,55 +36,54 @@ export default function Home() {
         id: doc.id,
         ...doc.data(),
       })
-      // console.log(doc.id, doc.data())
+      console.log(doc.id, doc.data())
     })
   setInventory(inventoryList)
   }
-  const [inputText, setText] = useState('')
 
   const addNewItem = async (item) => {
-    console.log("added" + item)
-    // const docRef = doc(collection(firestore,'inventory'), item)
-    // const docSnap = await docRef.data()
-    // if (docSnap.exists()){
-    //   const {quantity} = docSnap.data()
-    //   await setDoc(docRef,{quantity:quantity+1})
-    // }
-    // else{
-    //   await setDoc(docRef,{'quantity':1})
-    //   updateInventory()
+    // console.log("added" + item.id)
+    // console.log(typeof item)
+    const docRef = doc(collection(firestore,'inventory'), item.id)
+    const docSnap = await getDoc(docRef)
+    if (docSnap.exists()){
+      const {quantity} = docSnap.data()
+      await setDoc(docRef,{quantity:quantity+1})
+    }
+    else{
+      await setDoc(docRef,{'quantity':1})
+      updateInventory()
+    }
+    setAddModal(false)
 
-    // }
-    // setAddModal(false)
-
-  }
-
-  const getQuantity = async (item) => {
-    // const docRef = doc(collection(firestore,'inventory'),item)
-    // const docSnap = await getDoc(docRef)
-    // const {quantity} = docRef.data()
-    // return quantity
   }
 
   const removeItem = async (item)  => {
-   const docRef = doc(collection(firestore,'inventory'),item)
-   const docSnap = await getDoc(docRef)
-   if (docSnap.exists()){
-    const {quantity} = docSnap.data() 
-    if (quantity === 1){
-      await deleteDoc(docRef)
-    }
-    else{
-      await setDoc(docRef, {quantity: quantity - 1})
-    }
+    const docRef = doc(collection(firestore,'inventory'),item.id)
+    const docSnap = await getDoc(docRef)
+    if (docSnap.exists()){
+      const {quantity} = docSnap.data() 
+      // await setDoc(docRef,{quantity:quantity-1})
+      if (quantity === 1){
+        await deleteDoc(docRef)
+      }
+      else{
+        await setDoc(docRef, {quantity: quantity - 1})
+      }
+      updateInventory()
    }
-   updateInventory()
   }
 
+  const SearchFound = (value) =>{
+    if (value.includes(searchText)){
+      return true
+    }
+    else return false
+  }
 
-  // useEffect(()=>{
-  //   updateinventory()
-  // },[])
+  useEffect(()=>{
+    updateInventory()
+  },[])
 
   return (
     // page container
@@ -93,6 +94,7 @@ export default function Home() {
     flexDirection={'column'}
     justifyContent={'center'}
     alignItems={'center'}
+    bgcolor={"#888888"}
     >
       {/* modal */}
       <Modal
@@ -127,7 +129,7 @@ export default function Home() {
       width={'inherit'}
       maxWidth='800px'
       height = '120px'
-      bgcolor={'#ccccff'}
+      bgcolor={'#73a3d3'}
       display={"flex"}
       flexDirection={'column'}
       justifyContent={'center'}
@@ -136,6 +138,30 @@ export default function Home() {
         <Typography variant = {'h1'}>
           Inventory
         </Typography>
+      </Box>
+
+      {/* Search */}
+      <Box
+      border={'2px solid #333'}
+      width={'inherit'}
+      maxWidth='800px'
+      height = '50px'
+      bgcolor={'#eeeeee'}
+      display={"flex"}
+      flexDirection={'row'}
+      justifyContent={'space-around'}
+      alignItems={'center'}
+      >
+        <IconButton type="button" sx={{ p: '10px' }} aria-label="search icon">
+          <Search/>
+        </IconButton>
+        <InputBase
+          sx={{ ml: 1, flex: 1 }}
+          placeholder="Search Inventory . . ."
+          inputProps={{ 'aria-label': 'search' }}
+          onChange={(e)=>{setSearchText(e.target.value)}}
+        />
+        
       </Box>
 
       {/* Items */}
@@ -149,46 +175,57 @@ export default function Home() {
       display = {'flex'}
       justifyContent={'center'}
       alignItems={'center'}
+      bgcolor={'#bbbbbb'}
+      
       >
-        {inventory.map((item) => (
-          <Box 
-            key = {item.id}
-            width={'99%'}
-            height = '60px'
-            display = {'flex'}
-            justifyContent={'space-between'}
-            alignItems={'center'}
-            bgcolor={'#cccccc'}
-
-          >
-            <Box
-            width = {'50%'}
-            height={'inherit'}
-            display = {'flex'}
-            alignItems={'center'}
-            paddingLeft={'10px'}
-            gap={2}
-            >
-              {/* quantity */}
-              <Typography>
-                {/* x{item.quantity} */}
-                x1
-              </Typography>
-              {/* add one */}
-              <IconButton onClick={()=>{addNewItem(item)}}>
-                <AddCircle></AddCircle>              
-              </IconButton>
-              {/* name */}
-              <Typography>
-                {item.charAt(0).toUpperCase() + item.toLowerCase().slice(1)}
-                {/* {item.id.charAt(0).toUpperCase() + item.id.toLowerCase().slice(1)} */}
-              </Typography>
-            </Box>
-            
-            <DeleteEntry active = {removeButtonActive} onClick = {()=>{console.log("remove")}}></DeleteEntry>
-            {/* <DeleteEntry active = {removeButtonActive} onClick = {()=>{removeItem(item)}}></DeleteEntry> */}
-          </Box>
-        ))}
+        {inventory.map((item) => {
+          console.log("printing item: " + item.id)
+          console.log(typeof item)
+          if (SearchFound(item.id)){
+            return (
+              <Box 
+                key = {item.id}
+                width={'99%'}
+                height = '60px'
+                display = {'flex'}
+                justifyContent={'space-between'}
+                alignItems={'center'}
+                bgcolor={'#eeeeee'}
+                borderRadius={'10px'}
+                sx={{boxShadow:1}}
+                // border={'2px solid #333'}
+              >
+                <Box
+                width = {'50%'}
+                height={'inherit'}
+                display = {'flex'}
+                alignItems={'center'}
+                paddingLeft={'10px'}
+                gap={2}
+                >
+                  {/* quantity */}
+                  <Typography>
+                    {/* x1 */}
+                    x{item.quantity}
+                  </Typography>
+    
+                  {/* add one */}
+                  <IconButton onClick={()=>{addNewItem(item)}}>
+                    <AddCircle></AddCircle>              
+                  </IconButton>
+    
+                  {/* name */}
+                  <Typography>
+                    {/* {item.charAt(0).toUpperCase() + item.toLowerCase().slice(1)} */}
+                    {item.id.charAt(0).toUpperCase() + item.id.toLowerCase().slice(1)}
+                  </Typography>
+                </Box>
+                
+                {/* <DeleteEntry active = {removeButtonActive} onClick = {()=>{console.log("remove")}}></DeleteEntry> */}
+                <DeleteEntry active = {removeButtonActive} onClick = {()=>{removeItem(item)}}></DeleteEntry>
+              </Box>
+            )}
+          })}
       </Stack>
 
       {/* buttons */}

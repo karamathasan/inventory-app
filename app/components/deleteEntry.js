@@ -9,7 +9,7 @@ function DeleteEntry(props){
                 // onClick={()=>{console.log("click")}}
                 >
                     <Typography>
-                        Delete
+                        -1
                     </Typography>
                     <DeleteIcon></DeleteIcon>
                 </IconButton>
