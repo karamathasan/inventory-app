@@ -5,7 +5,7 @@ import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc } from "fire
 import { useEffect, useState } from "react";
 import DeleteEntry from "./components/deleteEntry";
 
-import { AddCircle, ContentPasteSearchOutlined, Search } from "@mui/icons-material";
+import { AddCircle, Search } from "@mui/icons-material";
 
 
 export default function Home() {
@@ -36,34 +36,29 @@ export default function Home() {
         id: doc.id,
         ...doc.data(),
       })
-      console.log(doc.id, doc.data())
     })
   setInventory(inventoryList)
   }
 
-  const addNewItem = async (item) => {
-    // console.log("added" + item.id)
-    // console.log(typeof item)
-    const docRef = doc(collection(firestore,'inventory'), item.id)
+  const addNewItem = async (itemName) => {
+    const docRef = doc(collection(firestore,'inventory'), itemName)
     const docSnap = await getDoc(docRef)
     if (docSnap.exists()){
       const {quantity} = docSnap.data()
       await setDoc(docRef,{quantity:quantity+1})
     }
     else{
-      await setDoc(docRef,{'quantity':1})
-      updateInventory()
+      await setDoc(docRef,{quantity:1})
     }
+    updateInventory()
     setAddModal(false)
-
   }
 
-  const removeItem = async (item)  => {
-    const docRef = doc(collection(firestore,'inventory'),item.id)
+  const removeItem = async (itemName)  => {
+    const docRef = doc(collection(firestore,'inventory'), itemName)
     const docSnap = await getDoc(docRef)
     if (docSnap.exists()){
       const {quantity} = docSnap.data() 
-      // await setDoc(docRef,{quantity:quantity-1})
       if (quantity === 1){
         await deleteDoc(docRef)
       }
@@ -116,7 +111,6 @@ export default function Home() {
             onChange={(e)=>{setText(e.target.value)}}
             >
             </TextField>
-            {/* <Button variant = 'contained' onClick={()=>{setAddModal(false)}}>Add</Button> */}
             <Button variant = 'contained' onClick={()=>{addNewItem(inputText)}}>Add</Button>
           </Stack>
           
@@ -161,7 +155,6 @@ export default function Home() {
           inputProps={{ 'aria-label': 'search' }}
           onChange={(e)=>{setSearchText(e.target.value)}}
         />
-        
       </Box>
 
       {/* Items */}
@@ -179,8 +172,6 @@ export default function Home() {
       
       >
         {inventory.map((item) => {
-          console.log("printing item: " + item.id)
-          console.log(typeof item)
           if (SearchFound(item.id)){
             return (
               <Box 
@@ -193,7 +184,6 @@ export default function Home() {
                 bgcolor={'#eeeeee'}
                 borderRadius={'10px'}
                 sx={{boxShadow:1}}
-                // border={'2px solid #333'}
               >
                 <Box
                 width = {'50%'}
@@ -210,19 +200,17 @@ export default function Home() {
                   </Typography>
     
                   {/* add one */}
-                  <IconButton onClick={()=>{addNewItem(item)}}>
+                  <IconButton onClick={()=>{addNewItem(item.id)}}>
                     <AddCircle></AddCircle>              
                   </IconButton>
     
                   {/* name */}
                   <Typography>
-                    {/* {item.charAt(0).toUpperCase() + item.toLowerCase().slice(1)} */}
                     {item.id.charAt(0).toUpperCase() + item.id.toLowerCase().slice(1)}
                   </Typography>
                 </Box>
                 
-                {/* <DeleteEntry active = {removeButtonActive} onClick = {()=>{console.log("remove")}}></DeleteEntry> */}
-                <DeleteEntry active = {removeButtonActive} onClick = {()=>{removeItem(item)}}></DeleteEntry>
+                <DeleteEntry active = {removeButtonActive} onClick = {()=>{removeItem(item.id)}}></DeleteEntry>
               </Box>
             )}
           })}
@@ -235,8 +223,6 @@ export default function Home() {
       display={'flex'}
       justifyContent={'space-around'}
       alignItems={'center'}
-      // flexDirection={'column'}
-
       >
         <Button variant = 'contained' onClick={()=>{setAddModal(true)}}>
           add
